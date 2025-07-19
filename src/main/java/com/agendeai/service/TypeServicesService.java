@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TypeServicesService {
 
-    private TypeServiceRepository typeServiceRepository;
-    private BarberRepository barberRepository;
+    private final TypeServiceRepository typeServiceRepository;
+    private final BarberRepository barberRepository;
 
     public ServiceDTO register(ServiceCreateDTO dto){
         Barber barber = barberRepository.findById(dto.getBarberId())
