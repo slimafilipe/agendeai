@@ -5,6 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
+
 public class SchedulingResponseDTO {
     private Long id;
     private Long clientId;

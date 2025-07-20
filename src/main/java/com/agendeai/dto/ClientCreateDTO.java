@@ -6,6 +6,7 @@ import lombok.Data;
 
 @Data
 public class ClientCreateDTO {
+
     @NotBlank
     private String name;
 

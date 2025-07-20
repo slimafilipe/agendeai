@@ -1,15 +1,16 @@
 package com.agendeai.controller;
 
 import com.agendeai.dto.SchedulingCreateDTO;
-import com.agendeai.dto.SchedulingDTO;
 import com.agendeai.dto.SchedulingResponseDTO;
 import com.agendeai.service.SchedulingService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/scheduling")
@@ -19,19 +20,24 @@ public class SchedulingController {
     private final SchedulingService service;
 
     @PostMapping
-    public SchedulingDTO toSchedule(@RequestBody @Valid SchedulingCreateDTO dto){
-        return service.toSchedule(dto);
+    public ResponseEntity<SchedulingResponseDTO> create(@RequestBody SchedulingCreateDTO dto){
+       return ResponseEntity.ok(service.create(dto));
     }
 
     @GetMapping("/barbers/{barberId}")
-    public List<SchedulingDTO> findByBarber(@PathVariable Long barberId){
-        return service.findByBarber(barberId);
+    public ResponseEntity<List<SchedulingResponseDTO>> findByBarber(@PathVariable Long barberId){
+        return ResponseEntity.ok(service.findByBarber(barberId));
     }
 
     @GetMapping("/clients/{clientId}")
-        public List<SchedulingDTO> findByClient(@PathVariable Long clientId){
-            return service.findByClient(clientId);
+        public ResponseEntity<List<SchedulingResponseDTO>> findByClient(@PathVariable Long clientId){
+            return ResponseEntity.ok(service.findByClient(clientId));
         }
+
+    @GetMapping("/date/{date}")
+    public ResponseEntity<List<SchedulingResponseDTO>> getDate(@PathVariable String date){
+        return ResponseEntity.ok(service.findByDate(LocalDate.parse(date)));
+    }
 
     @GetMapping
     public ResponseEntity<List<SchedulingResponseDTO>> listAll(){

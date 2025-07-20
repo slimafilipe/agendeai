@@ -17,6 +17,14 @@ public class BarberService {
 
     private final BarberRepository barberRepository;
 
+
+
+    public Barber findById(Long id){
+        return barberRepository.findById(id).orElseThrow(() -> new RuntimeException("Barbeiro não encontrado com o ID " + id));
+    }
+
+
+    /*
     public BarberDTO register(@Valid BarberCreateDTO dto){
         Barber barber = Barber.builder()
                 .name(dto.getName())
@@ -43,4 +51,6 @@ public class BarberService {
                 .password(barber.getPassword())
                 .build();
     }
+
+     */
 }

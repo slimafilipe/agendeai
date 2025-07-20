@@ -1,54 +1,45 @@
 package com.agendeai.service;
 
 import com.agendeai.dto.ServiceCreateDTO;
-import com.agendeai.dto.ServiceDTO;
-import com.agendeai.model.Barber;
 import com.agendeai.model.TypeServices;
-import com.agendeai.repository.BarberRepository;
 import com.agendeai.repository.TypeServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
 public class TypeServicesService {
 
     private final TypeServiceRepository typeServiceRepository;
-    private final BarberRepository barberRepository;
+    private final BarberService barberService;
 
-    public ServiceDTO register(ServiceCreateDTO dto){
-        Barber barber = barberRepository.findById(dto.getBarberId())
-                .orElseThrow(()-> new RuntimeException("Barbeiro não encontrado"));
+    public TypeServices create (ServiceCreateDTO dto){
+        var barber = barberService.findById(dto.getBarberId());
 
-        TypeServices typeServices = TypeServices.builder()
+        var typeService = TypeServices.builder()
                 .nameService(dto.getNameService())
                 .price(dto.getPrice())
                 .durationMinutes(dto.getDurationMinutes())
                 .barber(barber)
                 .build();
-        return toDto(typeServiceRepository.save(typeServices));
+        return typeServiceRepository.save(typeService);
     }
 
-    public List<ServiceDTO> listByBarber(Long barberId){
-        return typeServiceRepository.findByBarberId(barberId)
-                .stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    public List<TypeServices> findAll(){
+        return typeServiceRepository.findAll();
     }
 
-    private ServiceDTO toDto(TypeServices typeServices){
-        return ServiceDTO.builder()
-                .id(typeServices.getId())
-                .nameService(typeServices.getNameService())
-                .price(typeServices.getPrice())
-                .durationMinutes(typeServices.getDurationMinutes())
-                .barberId(typeServices.getBarber().getId())
-                .barberName(typeServices.getBarber().getName())
-                .build();
-    }
+   public TypeServices findById(Long id){
+       return typeServiceRepository.findById(id).orElseThrow(() -> new RuntimeException("Serviço não encontrado com o ID " + id));
+   }
+
+   public List<TypeServices> findByBarber(Long barberId){
+       return typeServiceRepository.findByBarberId(barberId);
+   }
+
 
 
 }

@@ -1,15 +1,12 @@
 package com.agendeai.service;
 
-import com.agendeai.dto.ClientCreateDTO;
-import com.agendeai.dto.ClientDTO;
+
 import com.agendeai.model.Client;
 import com.agendeai.repository.ClientRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +14,19 @@ public class ClientService {
 
     private final ClientRepository clientRepository;
 
+
+    public Client findById(Long id){
+        return clientRepository.findById(id).orElseThrow(() -> new RuntimeException("Cliente não encontrado com ID: " + id));
+    }
+
+
+
+
+
+
+
+
+/*
     public ClientDTO register(@Valid ClientCreateDTO dto){
         Client client = Client.builder()
                 .name(dto.getName())
@@ -41,4 +51,7 @@ public class ClientService {
                 .numberPhone(client.getPassword())
                 .build();
     }
+
+
+ */
 }
