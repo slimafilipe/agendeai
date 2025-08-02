@@ -1,14 +1,15 @@
 package com.agendeai.service;
 
 import com.agendeai.dto.SchedulingCreateDTO;
-import com.agendeai.dto.SchedulingDTO;
 import com.agendeai.dto.SchedulingResponseDTO;
+import com.agendeai.exception.SchedulingConflictException;
 import com.agendeai.model.Scheduling;
 import com.agendeai.repository.SchedulingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,10 @@ public class SchedulingService {
 
 
     public SchedulingResponseDTO create(SchedulingCreateDTO dto){
+
+        if (hasConflict(dto)){
+            throw new SchedulingConflictException("Conflito de horário: O barbeiro já tem um agendamento para esse horário.");
+        }
         var scheduling = new Scheduling();
         scheduling.setDateTime(dto.getDateTime());
         scheduling.setClient(clientService.findById(dto.getClientId()));
@@ -103,5 +108,20 @@ public class SchedulingService {
         }).toList();
     }
 
+    private boolean hasConflict(SchedulingCreateDTO dto){
+        var service = typeServicesService.findById(dto.getTypeServicesId());
+
+        List<Scheduling> existingSchedules = schedulingRepository.findByBarberId(dto.getBarberId());
+
+        return existingSchedules.stream().anyMatch(s -> {
+            LocalDateTime start = s.getDateTime();
+            LocalDateTime end = start.plusMinutes(s.getTypeServices().getDurationMinutes());
+
+            LocalDateTime nextStart = dto.getDateTime();
+            LocalDateTime endNext = nextStart.plusMinutes(service.getDurationMinutes());
+
+            return nextStart.isBefore(end) && endNext.isAfter(start);
+        });
+    }
 
 }

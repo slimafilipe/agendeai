@@ -1,5 +1,6 @@
 package com.agendeai.dto;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -18,5 +19,6 @@ public class SchedulingCreateDTO {
     private Long typeServicesId;
 
     @NotNull
+    @Future(message = "A data e hora do agendamento devem está no futuro")
     private LocalDateTime dateTime;
 }
