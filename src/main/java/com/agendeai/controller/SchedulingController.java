@@ -6,6 +6,7 @@ import com.agendeai.exception.ApiError;
 import com.agendeai.exception.SchedulingConflictException;
 import com.agendeai.service.SchedulingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +25,15 @@ public class SchedulingController {
     @PostMapping
     public ResponseEntity<SchedulingResponseDTO> create(@RequestBody SchedulingCreateDTO dto){
        return ResponseEntity.ok(service.create(dto));
+    }
+
+    @GetMapping("/barbers/{barberId}/available")
+    public ResponseEntity<List<LocalDateTime>> getAvailableSlots(
+            @PathVariable Long barberId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate date
+
+    ) {
+        return ResponseEntity.ok(service.getAvailableSlots(barberId, date));
     }
 
     @GetMapping("/barbers/{barberId}")

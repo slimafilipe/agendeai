@@ -10,8 +10,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -124,4 +128,35 @@ public class SchedulingService {
         });
     }
 
+    public List<LocalDateTime> getAvailableSlots(Long barberId, LocalDate date) {
+        var existingSchedules = schedulingRepository.findByBarberId(barberId);
+
+        //Pega todos os horários já agendados para esse barbeiro nessa data
+        List<LocalDateTime> occupied = existingSchedules.stream()
+                .filter(s -> s.getDateTime().toLocalDate().equals(date))
+                .flatMap(s -> {
+                    int duration = s.getTypeServices().getDurationMinutes();
+                    LocalDateTime start = s.getDateTime();
+                    LocalDateTime end = start.plusMinutes(duration);
+                    return start.until(end, ChronoUnit.MINUTES) > 0
+                            ? Stream.of(start)
+                            : Stream.empty();
+                })
+                .toList();
+        List<LocalDateTime> availableSlots = new ArrayList<>();
+        LocalDateTime opening = LocalDateTime.from(LocalTime.of(8,0));
+        LocalDateTime closing = LocalDateTime.from(LocalTime.of(18,0));
+
+        //Considera um intervalo de 30 minutos
+        for (LocalTime time = LocalTime.from(opening); time.isBefore(LocalTime.from(closing)); time = time.plusMinutes(30)){
+            LocalDateTime dateTime = LocalDateTime.of(date, time);
+
+            boolean isAvalaible = occupied.stream()
+                    .noneMatch(occ -> occ.equals(dateTime));
+            if (isAvalaible && dateTime.isAfter(LocalDateTime.now())){
+                availableSlots.add(dateTime);
+            }
+        }
+        return availableSlots;
+    }
 }
