@@ -2,6 +2,7 @@ package com.agendeai.controller;
 
 import com.agendeai.dto.SchedulingCreateDTO;
 import com.agendeai.dto.SchedulingResponseDTO;
+import com.agendeai.exception.SchedulingConflictException;
 import com.agendeai.service.SchedulingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,5 +43,10 @@ public class SchedulingController {
     @GetMapping
     public ResponseEntity<List<SchedulingResponseDTO>> listAll(){
         return ResponseEntity.ok(service.listAll());
+    }
+
+    @ExceptionHandler(SchedulingConflictException.class)
+    public ResponseEntity<String> handlerSchedulingConflict(SchedulingConflictException ex) {
+        return ResponseEntity.status(409).body(ex.getMessage());
     }
 }
