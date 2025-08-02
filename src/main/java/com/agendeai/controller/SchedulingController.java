@@ -2,6 +2,7 @@ package com.agendeai.controller;
 
 import com.agendeai.dto.SchedulingCreateDTO;
 import com.agendeai.dto.SchedulingResponseDTO;
+import com.agendeai.exception.ApiError;
 import com.agendeai.exception.SchedulingConflictException;
 import com.agendeai.service.SchedulingService;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +47,13 @@ public class SchedulingController {
     }
 
     @ExceptionHandler(SchedulingConflictException.class)
-    public ResponseEntity<String> handlerSchedulingConflict(SchedulingConflictException ex) {
-        return ResponseEntity.status(409).body(ex.getMessage());
+    public ResponseEntity<ApiError  > handlerSchedulingConflict(SchedulingConflictException ex) {
+        ApiError error = new ApiError(
+                409,
+                "Conflito de Horário",
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(409).body(error);
     }
 }

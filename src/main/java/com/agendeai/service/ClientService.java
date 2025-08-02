@@ -1,6 +1,7 @@
 package com.agendeai.service;
 
 
+import com.agendeai.exception.ClientNotFoundException;
 import com.agendeai.model.Client;
 import com.agendeai.repository.ClientRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ public class ClientService {
 
 
     public Client findById(Long id){
-        return clientRepository.findById(id).orElseThrow(() -> new RuntimeException("Cliente não encontrado com ID: " + id));
+        return clientRepository.findById(id).orElseThrow(() -> new ClientNotFoundException(id));
     }
 
 

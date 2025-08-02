@@ -1,7 +1,7 @@
 package com.agendeai.exception;
 
 public class SchedulingConflictException extends RuntimeException {
-    public SchedulingConflictException(String message) {
-        super(message);
+    public SchedulingConflictException() {
+        super("O barbeiro já tem um agendamento para esse horário");
     }
 }

@@ -27,7 +27,7 @@ public class SchedulingService {
     public SchedulingResponseDTO create(SchedulingCreateDTO dto){
 
         if (hasConflict(dto)){
-            throw new SchedulingConflictException("Conflito de horário: O barbeiro já tem um agendamento para esse horário.");
+            throw new RuntimeException("Horário indisponível para esse barbeiro.");
         }
         var scheduling = new Scheduling();
         scheduling.setDateTime(dto.getDateTime());
@@ -117,10 +117,10 @@ public class SchedulingService {
             LocalDateTime start = s.getDateTime();
             LocalDateTime end = start.plusMinutes(s.getTypeServices().getDurationMinutes());
 
-            LocalDateTime nextStart = dto.getDateTime();
-            LocalDateTime endNext = nextStart.plusMinutes(service.getDurationMinutes());
+            LocalDateTime newStart = dto.getDateTime();
+            LocalDateTime newEnd = newStart.plusMinutes(typeServicesService.findById(dto.getTypeServicesId()).getDurationMinutes());
 
-            return nextStart.isBefore(end) && endNext.isAfter(start);
+            return newStart.isBefore(end) && newEnd.isAfter(start);
         });
     }
 
