@@ -4,6 +4,7 @@ import com.agendeai.dto.SchedulingCreateDTO;
 import com.agendeai.dto.SchedulingResponseDTO;
 import com.agendeai.exception.SchedulingConflictException;
 import com.agendeai.exception.TypeServiceNotFoundException;
+import com.agendeai.model.Barber;
 import com.agendeai.model.Scheduling;
 import com.agendeai.model.TypeServices;
 import com.agendeai.repository.SchedulingRepository;
@@ -35,15 +36,24 @@ public class SchedulingService {
 
     public SchedulingResponseDTO create(SchedulingCreateDTO dto){
 
-        if (hasConflict(dto)){
-            throw new RuntimeException("Horário indisponível para esse barbeiro.");
+        var client = clientService.findById(dto.getClientId());
+        var barber = barberService.findById(dto.getBarberId());
+        var service = typeServicesService.findById(dto.getTypeServicesId());
+
+        LocalDateTime newStart = dto.getDateTime();
+        LocalDateTime newEnd = newStart.plusMinutes(service.getDurationMinutes());
+
+        List<Scheduling> conflitScheduling = schedulingRepository.findByBarberAndStartBetween(barber, newStart, newEnd);
+
+        if (!conflitScheduling.isEmpty()){
+            throw new IllegalArgumentException("Horário indisponível para esse barbeiro");
         }
         var scheduling = new Scheduling();
-        scheduling.setDateTime(dto.getDateTime());
-        scheduling.setClient(clientService.findById(dto.getClientId()));
-        scheduling.setBarber(barberService.findById(dto.getBarberId()));
-        scheduling.setTypeServices(typeServicesService.findById(dto.getTypeServicesId()));
-
+        scheduling.setDateTime(newStart);
+        scheduling.setClient(client);
+        scheduling.setBarber(barber);
+        scheduling.setTypeServices(service);
+        scheduling.setStatusScheduling(Scheduling.StatusScheduling.AGENDADO);
 
         Scheduling saved = schedulingRepository.save(scheduling);
         return toResponseDTO(saved);
@@ -68,9 +78,11 @@ public class SchedulingService {
     }
 
     public List<SchedulingResponseDTO> findByDate(LocalDate date){
-        return schedulingRepository.findAll()
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+
+        return schedulingRepository.findByDateTimeBetween(startOfDay,endOfDay)
                 .stream()
-                .filter(s -> s.getDateTime().toLocalDate().equals(date))
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -97,41 +109,12 @@ public class SchedulingService {
     }
 
     public List<SchedulingResponseDTO> listAll() {
-        return schedulingRepository.findAll().stream().map(scheduling -> {SchedulingResponseDTO dto = new SchedulingResponseDTO();
-        dto.setId(scheduling.getId());
-        dto.setDateTime(scheduling.getDateTime());
-
-        var client = scheduling.getClient();
-        var barber = scheduling.getBarber();
-        var service = scheduling.getTypeServices();
-
-        dto.setClientId(client.getId());
-        dto.setClientName(client.getName());
-        dto.setBarberId(barber.getId());
-        dto.setBarberName(barber.getName());
-        dto.setServiceId(service.getId());
-        dto.setServiceName(service.getNameService());
-
-        return dto;
-
-        }).toList();
+        return schedulingRepository.findAll()
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
     }
 
-    private boolean hasConflict(SchedulingCreateDTO dto){
-        var service = typeServicesService.findById(dto.getTypeServicesId());
-
-        List<Scheduling> existingSchedules = schedulingRepository.findByBarberId(dto.getBarberId());
-
-        return existingSchedules.stream().anyMatch(s -> {
-            LocalDateTime start = s.getDateTime();
-            LocalDateTime end = start.plusMinutes(s.getTypeServices().getDurationMinutes());
-
-            LocalDateTime newStart = dto.getDateTime();
-            LocalDateTime newEnd = newStart.plusMinutes(service.getDurationMinutes());
-
-            return newStart.isBefore(end) && newEnd.isAfter(start);
-        });
-    }
 
     public List<LocalDateTime> getAvailableSlots(Long barberId, LocalDate date, Long serviceId) {
 
@@ -144,61 +127,26 @@ public class SchedulingService {
 
         List<Scheduling> schedules = schedulingRepository.findByBarberIdAndDateTime(barberId, date);
 
-        List<LocalDateTime> slots = new ArrayList<>();
-        LocalDateTime current = start;
-        while (!current.plusMinutes(durationMinutes).isAfter(end)) {
-            LocalDateTime slotEnd = current.plusMinutes(durationMinutes);
-
-            LocalDateTime finalCurrent = current;
-            boolean isAvailable = schedules.stream()
-                    .noneMatch(s -> {
-                        LocalDateTime scheduleStart = s.getDateTime();
-                        LocalDateTime scheduleEnd = scheduleStart.plusMinutes(s.getTypeServices().getDurationMinutes());
-                        return !(slotEnd.isBefore(scheduleStart) || finalCurrent.isAfter(scheduleEnd));
-                    });
-            if (isAvailable) {
-                slots.add(current);
-            }
-            current = current.plusMinutes(15);
-        }
-
-
-
-
-
-       /*
-        var existingSchedules = schedulingRepository.findByBarberId(barberId);
-
-        //Pega todos os horários já agendados para esse barbeiro nessa data
-        List<LocalDateTime> occupied = existingSchedules.stream()
-                .filter(s -> s.getDateTime().toLocalDate().equals(date))
-                .flatMap(s -> {
-                    int duration = s.getTypeServices().getDurationMinutes();
-                    LocalDateTime start = s.getDateTime();
-                    LocalDateTime end = start.plusMinutes(duration);
-                    return start.until(end, ChronoUnit.MINUTES) > 0
-                            ? Stream.of(start)
-                            : Stream.empty();
-                })
-                .toList();
         List<LocalDateTime> availableSlots = new ArrayList<>();
-        LocalDateTime opening = LocalDateTime.from(LocalTime.of(8,0));
-        LocalDateTime closing = LocalDateTime.from(LocalTime.of(18,0));
+        LocalDateTime currentSlotStart = date.atTime(9,0);
+        LocalDateTime dayEnd = date.atTime(18,0);
+        while (!currentSlotStart.plusMinutes(durationMinutes).isAfter(dayEnd)) {
+            LocalDateTime currentslotEnd = currentSlotStart.plusMinutes(durationMinutes);
 
-        //Considera um intervalo de 30 minutos
-        for (LocalTime time = LocalTime.from(opening); time.isBefore(LocalTime.from(closing)); time = time.plusMinutes(30)){
-            LocalDateTime dateTime = LocalDateTime.of(date, time);
+            LocalDateTime finalCurrentSlotStart = currentSlotStart;
+            boolean hasConflit = schedules.stream()
+                    .anyMatch(existingSchedule -> {
+                        LocalDateTime existingStart = existingSchedule.getDateTime();
+                        LocalDateTime existingEnd = existingStart.plusMinutes(existingSchedule.getTypeServices().getDurationMinutes());
 
-            boolean isAvalaible = occupied.stream()
-                    .noneMatch(occ -> occ.equals(dateTime));
-            if (isAvalaible && dateTime.isAfter(LocalDateTime.now())){
-                availableSlots.add(dateTime);
+                        return finalCurrentSlotStart.isBefore(existingEnd) && currentslotEnd.isAfter(existingStart);
+
+                    });
+            if (!hasConflit) {
+                availableSlots.add(currentSlotStart);
             }
+            currentSlotStart = currentSlotStart.plusMinutes(30);
         }
-        return availableSlots;
-
-        */
-
-    return slots;
+    return availableSlots;
     }
 }

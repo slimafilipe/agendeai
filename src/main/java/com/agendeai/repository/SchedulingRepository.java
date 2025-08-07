@@ -1,5 +1,6 @@
 package com.agendeai.repository;
 
+import com.agendeai.dto.SchedulingResponseDTO;
 import com.agendeai.model.Barber;
 import com.agendeai.model.Scheduling;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,4 +18,7 @@ public interface SchedulingRepository extends JpaRepository<Scheduling, Long> {
     List<Scheduling> findByClientId(Long clientId);
 
     List<Scheduling> findByBarberAndStartBetween(Barber barber, LocalDateTime start, LocalDateTime end);
+
+    List<Scheduling> findByDateTimeBetween(LocalDateTime startOfDay, LocalDateTime endOfDay);
+
 }
