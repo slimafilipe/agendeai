@@ -30,10 +30,11 @@ public class SchedulingController {
     @GetMapping("/barbers/{barberId}/available")
     public ResponseEntity<List<LocalDateTime>> getAvailableSlots(
             @PathVariable Long barberId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate date
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam Long serviceId
 
     ) {
-        return ResponseEntity.ok(service.getAvailableSlots(barberId, date));
+        return ResponseEntity.ok(service.getAvailableSlots(barberId, date, serviceId));
     }
 
     @GetMapping("/barbers/{barberId}")
@@ -57,7 +58,7 @@ public class SchedulingController {
     }
 
     @ExceptionHandler(SchedulingConflictException.class)
-    public ResponseEntity<ApiError  > handlerSchedulingConflict(SchedulingConflictException ex) {
+    public ResponseEntity<ApiError> handlerSchedulingConflict(SchedulingConflictException ex) {
         ApiError error = new ApiError(
                 409,
                 "Conflito de Horário",

@@ -3,9 +3,13 @@ package com.agendeai.service;
 import com.agendeai.dto.SchedulingCreateDTO;
 import com.agendeai.dto.SchedulingResponseDTO;
 import com.agendeai.exception.SchedulingConflictException;
+import com.agendeai.exception.TypeServiceNotFoundException;
 import com.agendeai.model.Scheduling;
+import com.agendeai.model.TypeServices;
 import com.agendeai.repository.SchedulingRepository;
+import com.agendeai.repository.TypeServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,6 +25,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class SchedulingService {
 
+    private final TypeServiceRepository typeServiceRepository;
     private final SchedulingRepository schedulingRepository;
 
     private final ClientService clientService;
@@ -122,13 +127,46 @@ public class SchedulingService {
             LocalDateTime end = start.plusMinutes(s.getTypeServices().getDurationMinutes());
 
             LocalDateTime newStart = dto.getDateTime();
-            LocalDateTime newEnd = newStart.plusMinutes(typeServicesService.findById(dto.getTypeServicesId()).getDurationMinutes());
+            LocalDateTime newEnd = newStart.plusMinutes(service.getDurationMinutes());
 
             return newStart.isBefore(end) && newEnd.isAfter(start);
         });
     }
 
-    public List<LocalDateTime> getAvailableSlots(Long barberId, LocalDate date) {
+    public List<LocalDateTime> getAvailableSlots(Long barberId, LocalDate date, Long serviceId) {
+
+        TypeServices service = typeServiceRepository.findById(serviceId)
+                .orElseThrow(() -> new TypeServiceNotFoundException(serviceId));
+        int durationMinutes = service.getDurationMinutes();
+
+        LocalDateTime start = date.atTime(9,0);
+        LocalDateTime end = date.atTime(18,0);
+
+        List<Scheduling> schedules = schedulingRepository.findByBarberIdAndDateTime(barberId, date);
+
+        List<LocalDateTime> slots = new ArrayList<>();
+        LocalDateTime current = start;
+        while (!current.plusMinutes(durationMinutes).isAfter(end)) {
+            LocalDateTime slotEnd = current.plusMinutes(durationMinutes);
+
+            LocalDateTime finalCurrent = current;
+            boolean isAvailable = schedules.stream()
+                    .noneMatch(s -> {
+                        LocalDateTime scheduleStart = s.getDateTime();
+                        LocalDateTime scheduleEnd = scheduleStart.plusMinutes(s.getTypeServices().getDurationMinutes());
+                        return !(slotEnd.isBefore(scheduleStart) || finalCurrent.isAfter(scheduleEnd));
+                    });
+            if (isAvailable) {
+                slots.add(current);
+            }
+            current = current.plusMinutes(15);
+        }
+
+
+
+
+
+       /*
         var existingSchedules = schedulingRepository.findByBarberId(barberId);
 
         //Pega todos os horários já agendados para esse barbeiro nessa data
@@ -158,5 +196,9 @@ public class SchedulingService {
             }
         }
         return availableSlots;
+
+        */
+
+    return slots;
     }
 }

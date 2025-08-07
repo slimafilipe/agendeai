@@ -29,6 +29,7 @@ public class Scheduling {
     @Column(nullable = false)
     private LocalDateTime dateTime;
 
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatusScheduling statusScheduling;
